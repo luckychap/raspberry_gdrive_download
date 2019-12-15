@@ -17,12 +17,13 @@ TOKEN = 'token.pickle'
 authApp = auth.auth(SCOPES,CREDENTIALS,TOKEN)
 creds = authApp.get_credentials()
 
-def qs():
-    service = build('drive', 'v3', credentials=creds)
-    # Call the Drive v3 API
-    results = service.files().list(
-        pageSize=10, fields="nextPageToken, files(id, name)").execute()
+drive_service = build('drive', 'v3', credentials=creds)
+
+def searchFile(query,fields='id, name, mimeType, parents',size=100):
+    results = drive_service.files().list(
+    pageSize=size,fields="nextPageToken, files(%s)" % fields,q=query).execute()
     items = results.get('files', [])
+    return items
 
     if not items:
         print('No files found.')
@@ -31,19 +32,6 @@ def qs():
         for item in items:
             print(u'{0} ({1})'.format(item['name'], item['id']))
 
-def searchFile(size,query):
-    service = build('drive', 'v3', credentials=creds)
-    results = service.files().list(
-    pageSize=size,fields="nextPageToken, files(id, name, mimeType, parents)",q=query).execute()
-    items = results.get('files', [])
-    return items
-    # if not items:
-    #     print('No files found.')
-    # else:
-    #     print('Files:')
-    #     for item in items:
-    #         print(item)
-            # print('{0} ({1})'.format(item['name'], item['id']))
 
 # if __name__ == '__main__':
 #     main()
