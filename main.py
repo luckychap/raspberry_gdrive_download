@@ -1,12 +1,13 @@
 #!/usr/bin/python
 from __future__ import print_function
 import pickle
-import os.path
+import os.path, io
 import json
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from googleapiclient.http import MediaIoBaseDownload
 
 import auth
 
@@ -14,6 +15,10 @@ import auth
 SCOPES = ['https://www.googleapis.com/auth/drive']
 CREDENTIALS = 'credentials.json'
 TOKEN = 'token.pickle'
+KUBKO = '1CN-OHaUPimULMtbxJkSjW0V3n_llj2qD'
+PICTURE_DEST = '/home/lucky/Downloads/drive/'
+NUMBER_OF_PICTURES = 1000
+
 authApp = auth.auth(SCOPES,CREDENTIALS,TOKEN)
 creds = authApp.get_credentials()
 
@@ -25,17 +30,23 @@ def searchFile(query,fields='id, name, mimeType, parents',size=100):
     items = results.get('files', [])
     return items
 
-    if not items:
-        print('No files found.')
-    else:
-        print('Files:')
-        for item in items:
-            print(u'{0} ({1})'.format(item['name'], item['id']))
+def downloadFile(file_id,filepath):
+    request = drive_service.files().get_media(fileId=file_id)
+    fh = io.BytesIO()
+    downloader = MediaIoBaseDownload(fh, request)
+    done = False
+    while done is False:
+        status, done = downloader.next_chunk()
+        print("Download %d%%." % int(status.progress() * 100))
+    with io.open(filepath,'wb') as f:
+        fh.seek(0)
+        f.write(fh.read())
 
 
 # if __name__ == '__main__':
 #     main()
-par = searchFile(1,"name = 'Kubko' and mimeType = 'application/vnd.google-apps.folder'")
-par_id = par[0]['id']
-pic = getattr(searchFile(5,"'%s' in parents and mimeType = 'image/jpeg'" % par_id), 'id')
-print(pic)
+pictures = searchFile("'%s' in parents and mimeType = 'image/jpeg'" % KUBKO,"id, name",NUMBER_OF_PICTURES)
+print(pictures)
+for picture in pictures:
+    print(picture['name'])
+    downloadFile(picture['id'],PICTURE_DEST + picture['name'])
